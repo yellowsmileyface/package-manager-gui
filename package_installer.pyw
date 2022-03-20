@@ -133,7 +133,7 @@ while 1:
             window["-status-"].update(value="Loading...")
             for package in values["-installed-"]:
                 name = data[package][0]
-                window.perform_long_operation(lambda: (name, subprocess.run(["pip", "show", name], capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW).stdout.decode().strip()), "-pkg-info-")
+                window.perform_long_operation(lambda: (name, subprocess.run(["pip", "show", name], capture_output=True, shell=True).stdout.decode().strip()), "-pkg-info-")
         window["-output-"].update(disabled=True)
     elif event == "-pkg-info-":
         window["-output-"].print(f"Information of package {values[event][0]}", font=(sg.DEFAULT_FONT, 15, "bold"))
@@ -145,7 +145,7 @@ while 1:
         window["-status-"].update(value="Loading...")
         window["-output-"].update(disabled=False)
         window["-output-"].update(value="")
-        window.perform_long_operation(lambda: subprocess.run(["pip", "check"], capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW).stdout.decode().strip(), "-ver-dep-")
+        window.perform_long_operation(lambda: subprocess.run(["pip", "check"], capture_output=True, shell=True).stdout.decode().strip(), "-ver-dep-")
     elif event == "-ver-dep-":
         window["-output-"].print(values[event])
         window["-output-"].update(disabled=True)
