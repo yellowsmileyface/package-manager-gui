@@ -121,9 +121,8 @@ while 1:
         else:
             window["-uninstall-"].update(disabled=True)
             window["-status-"].update(value="Uninstalling...")
-            for package in values["-installed-"]:
-                name = data[package][0]
-                window.perform_long_operation(lambda: run_command(["pip", "uninstall", "-y", name]), "-uninstall-evt-")
+            packages = map(lambda idx: data[idx][0], values["-installed-"])
+            window.perform_long_operation(lambda: run_command(["pip", "uninstall", "-y", *packages]), "-uninstall-evt-")
     elif event == "-uninstall-evt-":
         window["-output-"].update(disabled=True)
         window["-status-"].update(value="")
