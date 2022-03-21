@@ -46,7 +46,7 @@ def create_window(theme):
                     [sg.Button("Check dependency compatibilities", tooltip="pip check\nVerify if all installed packages have compatible dependencies", key="-check-dep-")]
                 ], expand_y=True),
                 sg.Frame("Output", [
-                    [sg.Multiline(expand_x=True, expand_y=True, disabled=True, key="-output-", autoscroll=True)]
+                    [sg.Multiline(expand_x=True, expand_y=True, disabled=True, key="-output-", autoscroll=True, right_click_menu=["", ["&Copy"]])]
                 ], expand_y=True)
             ],
         ])],
@@ -70,7 +70,7 @@ while 1:
         window = create_window(theme)
     elif event == "-update-":
         window["-update-"].update(disabled=True)
-        window["-status-"].update(value="Loading...")
+        window["-status-"].update(value="Updating table...")
         window.perform_long_operation(list_packages, "-pkg-list-")
     elif event == "-pkg-list-":
         window["-status-"].update(value="")
@@ -111,7 +111,7 @@ while 1:
             window["-install-"].update(disabled=not values["-name-"].strip())
         else:
             window["-install-"].update(disabled=not values["-req-file-"].strip())
-        window.perform_long_operation(list_packages, "-unused-evt-")
+        window.write_event_value("-update-", None)
     elif event == "-uninstall-":
         window["-output-"].update(disabled=False)
         window["-output-"].update(value="")
@@ -127,7 +127,7 @@ while 1:
         window["-output-"].update(disabled=True)
         window["-status-"].update(value="")
         window["-uninstall-"].update(text="Uninstall", disabled=False)
-        window.perform_long_operation(list_packages, "-unused-evt-")
+        window.write_event_value("-update-", None)
     elif event == "-get-info-":
         window["-output-"].update(disabled=True)
         window["-output-"].update("")
@@ -156,3 +156,5 @@ while 1:
         window["-output-"].update(disabled=True)
         window["-status-"].update(value="")
         window["-check-dep-"].update(text="Check dependency compatibilities", disabled=False)
+    elif event == "Copy":
+        sg.clipboard_set(values["-output-"])
