@@ -36,7 +36,7 @@ def create_window(theme):
                 [sg.Text("Package name:"), sg.Input(expand_x=True, key="-name-", enable_events=True)],
                 [sg.Text("Package version:"), sg.Combo([">=", "==", "<=", "~="], "==", key="-sign-", disabled=True, readonly=True), sg.Input(expand_x=True, key="-version-", enable_events=True)],
                 [sg.Text("Additional arguments:"), sg.Input(expand_x=True, key="-args-")],
-                [sg.Checkbox("Requirements file:", key="-need-req-file-", enable_events=True), sg.Input(disabled=True, expand_x=True, key="-req-file-"), sg.FileBrowse(target="-req-file-", key="-browse-", disabled=True)],
+                [sg.Checkbox("Requirements file:", key="-need-req-file-", enable_events=True), sg.Input(disabled=True, expand_x=True, key="-req-file-", enable_events=True), sg.FileBrowse(target="-req-file-", key="-browse-", disabled=True)],
                 [sg.Button("Install package", disabled=True, key="-install-")]
             ], expand_x=True)],
             [
@@ -75,21 +75,24 @@ while 1:
     elif event == "-pkg-list-":
         window["-status-"].update(value="")
         window["-update-"].update(text="Update table", disabled=False)
-    elif event == "-need-req-file-":
+    elif event in ("-need-req-file-", "-name-", "-req-file-"):
         window["-name-"].update(disabled=values["-need-req-file-"])
         window["-version-"].update(disabled=values["-need-req-file-"])
         window["-req-file-"].update(disabled=not values["-need-req-file-"])
         window["-browse-"].update(disabled=not values["-need-req-file-"])
+        if not values["-need-req-file-"]:
+            if values["-name-"].strip():
+                window["-install-"].update(disabled=False)
+            else: window["-install-"].update(disabled=True)
+        else:
+            if values["-req-file-"].strip():
+                window["-install-"].update(disabled=False)
+            else: window["-install-"].update(disabled=True)
     elif event == "-version-":
         if values["-version-"].strip():
             window["-sign-"].update(disabled=False)
         else:
             window["-sign-"].update(disabled=True)
-    elif event in ("-name-", "-req-file-"):
-        if values["-name-"].strip() or values["-req-file-"].strip():
-            window["-install-"].update(disabled=False)
-        else:
-            window["-install-"].update(disabled=True)
     elif event == "-install-":
         window["-install-"].update(disabled=True)
         window["-status-"].update(value="Installing...")
@@ -104,7 +107,10 @@ while 1:
     elif event == "-install-evt-":
         window["-output-"].update(disabled=True)
         window["-status-"].update(value="")
-        window["-install-"].update(disabled=not bool(values["-name-"].strip()))
+        if not values["-need-req-file-"]:
+            window["-install-"].update(disabled=not values["-name-"].strip())
+        else:
+            window["-install-"].update(disabled=not values["-req-file-"].strip())
         window.perform_long_operation(list_packages, "-unused-evt-")
     elif event == "-uninstall-":
         window["-output-"].update(disabled=False)
