@@ -13,7 +13,6 @@ def run_command(command):
             break
         elif output:
             window.write_event_value("-stdout-", output.decode())
-    rc = process.poll()
 
 def list_packages():
     global data
@@ -44,15 +43,16 @@ def create_window(theme):
                     [sg.Table(data, headings=["Name", "Version"], expand_x=True, expand_y=True, key="-installed-", select_mode=sg.TABLE_SELECT_MODE_EXTENDED)],
                     [sg.Button("Update table", key="-update-", tooltip="pip list\nUpdate the table"), sg.Button("Uninstall", key="-uninstall-"), sg.Button("Package information", key="-get-info-")],
                     [sg.Button("Check dependency compatibilities", tooltip="pip check\nVerify if all installed packages have compatible dependencies", key="-check-dep-")]
-                ], expand_y=True),
+                ], expand_x=True, expand_y=True),
                 sg.Frame("Output", [
-                    [sg.Multiline(expand_x=True, expand_y=True, disabled=True, key="-output-", autoscroll=True, right_click_menu=["", ["&Copy"]])]
-                ], expand_y=True)
+                    [sg.Multiline(expand_x=True, expand_y=True, disabled=True, key="-output-", autoscroll=True, right_click_menu=["", ["&Copy"]], font=sg.DEFAULT_FONT, horizontal_scroll=True)],
+                    [sg.Checkbox("Use monospace font", key="-monospace-", enable_events=True), sg.Push(), sg.Button("Clear output")]
+                ], expand_x=True, expand_y=True),
             ],
-        ])],
+        ], expand_x=True, expand_y=True)],
         [sg.Text(key="-status-")]
     ]
-    return sg.Window("Python Package Installer", layout=layout, finalize=True)
+    return sg.Window("Python Package Installer", layout=layout, finalize=True, resizable=True)
 
 window = create_window(theme)
 list_packages()
@@ -71,7 +71,7 @@ while 1:
     elif event == "-update-":
         window["-update-"].update(disabled=True)
         window["-status-"].update(value="Updating table...")
-        window.perform_long_operation(list_packages, "-pkg-list-")
+        window.start_thread(list_packages, "-pkg-list-")
     elif event == "-pkg-list-":
         window["-status-"].update(value="")
         window["-update-"].update(text="Update table", disabled=False)
@@ -103,8 +103,8 @@ while 1:
         ])
         window["-output-"].update(disabled=False)
         window["-output-"].update(value="")
-        window.perform_long_operation(lambda: run_command(["pip", "install", *args]), "-install-evt-")
-    elif event == "-install-evt-":
+        window.start_thread(lambda: run_command(["pip", "install", *args]), "-install-done-")
+    elif event == "-install-done-":
         window["-output-"].update(disabled=True)
         window["-status-"].update(value="")
         if not values["-need-req-file-"]:
@@ -122,8 +122,8 @@ while 1:
             window["-uninstall-"].update(disabled=True)
             window["-status-"].update(value="Uninstalling...")
             packages = map(lambda idx: data[idx][0], values["-installed-"])
-            window.perform_long_operation(lambda: run_command(["pip", "uninstall", "-y", *packages]), "-uninstall-evt-")
-    elif event == "-uninstall-evt-":
+            window.start_thread(lambda: run_command(["pip", "uninstall", "-y", *packages]), "-uninstall-done-")
+    elif event == "-uninstall-done-":
         window["-output-"].update(disabled=True)
         window["-status-"].update(value="")
         window["-uninstall-"].update(text="Uninstall", disabled=False)
@@ -138,7 +138,7 @@ while 1:
             window["-status-"].update(value="Loading...")
             for package in values["-installed-"]:
                 name = data[package][0]
-                window.perform_long_operation(lambda: (name, subprocess.run(["pip", "show", name], capture_output=True, shell=True).stdout.decode().strip()), "-pkg-info-")
+                window.start_thread(lambda: (name, subprocess.run(["pip", "show", name], capture_output=True, shell=True).stdout.decode().strip()), "-pkg-info-")
         window["-output-"].update(disabled=True)
     elif event == "-pkg-info-":
         window["-output-"].print(f"Information of package {values[event][0]}", font=(sg.DEFAULT_FONT, 15, "bold"))
@@ -150,11 +150,15 @@ while 1:
         window["-status-"].update(value="Loading...")
         window["-output-"].update(disabled=False)
         window["-output-"].update(value="")
-        window.perform_long_operation(lambda: subprocess.run(["pip", "check"], capture_output=True, shell=True).stdout.decode().strip(), "-ver-dep-")
+        window.start_thread(lambda: subprocess.run(["pip", "check"], capture_output=True, shell=True).stdout.decode().strip(), "-ver-dep-")
     elif event == "-ver-dep-":
         window["-output-"].print(values[event])
         window["-output-"].update(disabled=True)
         window["-status-"].update(value="")
         window["-check-dep-"].update(text="Check dependency compatibilities", disabled=False)
+    elif event == "-monospace-":
+        window["-output-"].update(font=("Courier" if values["-monospace-"] else sg.DEFAULT_FONT[0], sg.DEFAULT_FONT[1]))
     elif event == "Copy":
         sg.clipboard_set(values["-output-"])
+    elif event == "Clear output":
+        window["-output-"].update(value="")
