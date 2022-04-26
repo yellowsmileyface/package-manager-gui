@@ -30,26 +30,24 @@ def create_window(theme):
     layout = [
         [sg.Push(), sg.Text("Python Package Installer", font=(sg.DEFAULT_FONT, 20)), sg.Push()],
         [sg.Text("Theme: "), sg.Combo(sg.theme_list(), theme, readonly=True, key="-theme-", enable_events=True)],
-        [sg.Column([
-            [sg.Frame("Install", [
-                [sg.Text("Package name:"), sg.Input(expand_x=True, key="-name-", enable_events=True)],
-                [sg.Text("Package version:"), sg.Combo([">=", "==", "<=", "~="], "==", key="-sign-", disabled=True, readonly=True), sg.Input(expand_x=True, key="-version-", enable_events=True)],
-                [sg.Text("Additional arguments:"), sg.Input(expand_x=True, key="-args-")],
-                [sg.Checkbox("Requirements file:", key="-need-req-file-", enable_events=True), sg.Input(disabled=True, expand_x=True, key="-req-file-", enable_events=True), sg.FileBrowse(target="-req-file-", key="-browse-", disabled=True)],
-                [sg.Button("Install package", disabled=True, key="-install-")]
-            ], expand_x=True)],
-            [
-                sg.Frame("Manage packages", [
+        [sg.Frame("Install", [
+            [sg.Text("Package name:"), sg.Input(expand_x=True, key="-name-", enable_events=True)],
+            [sg.Text("Package version:"), sg.Combo([">=", "==", "<=", "~="], "==", key="-sign-", disabled=True, readonly=True), sg.Input(expand_x=True, key="-version-", enable_events=True)],
+            [sg.Text("Additional arguments:"), sg.Input(expand_x=True, key="-args-")],
+            [sg.Checkbox("Requirements file:", key="-need-req-file-", enable_events=True), sg.Input(disabled=True, expand_x=True, key="-req-file-", enable_events=True), sg.FileBrowse(target="-req-file-", key="-browse-", disabled=True)],
+            [sg.Button("Install package", disabled=True, key="-install-")]
+        ], expand_x=True)],
+        [sg.Pane([
+                sg.Column([[sg.Frame("Manage packages", [
                     [sg.Table(data, headings=["Name", "Version"], expand_x=True, expand_y=True, key="-installed-", select_mode=sg.TABLE_SELECT_MODE_EXTENDED)],
                     [sg.Button("Update table", key="-update-", tooltip="pip list\nUpdate the table"), sg.Button("Uninstall", key="-uninstall-"), sg.Button("Package information", key="-get-info-")],
                     [sg.Button("Check dependency compatibilities", tooltip="pip check\nVerify if all installed packages have compatible dependencies", key="-check-dep-")]
-                ], expand_x=True, expand_y=True),
-                sg.Frame("Output", [
+                ], expand_x=True, expand_y=True)]]),
+                sg.Column([[sg.Frame("Output", [
                     [sg.Multiline(expand_x=True, expand_y=True, disabled=True, key="-output-", autoscroll=True, right_click_menu=["", ["&Copy"]], font=sg.DEFAULT_FONT, horizontal_scroll=True)],
                     [sg.Checkbox("Use monospace font", key="-monospace-", enable_events=True), sg.Push(), sg.Button("Clear output")]
-                ], expand_x=True, expand_y=True),
-            ],
-        ], expand_x=True, expand_y=True)],
+                ], expand_x=True, expand_y=True)]]),
+        ], expand_x=True, expand_y=True, orientation="horizontal", relief="flat")],
         [sg.Text(key="-status-")]
     ]
     return sg.Window("Python Package Installer", layout=layout, finalize=True, resizable=True)
