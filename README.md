@@ -3,4 +3,4 @@ A tool for managing Python packages.
 
 It uses PySimpleGUI for buliding user interface.
 
-![Screenshot](https://user-images.githubusercontent.com/95117217/165005409-d040f2fd-4b73-445b-b31f-8fa9b716b3af.png)
+![Screenshot](https://user-images.githubusercontent.com/95117217/165272859-fb58a1a8-b531-45aa-9b6f-e6094de3bd6d.png)
