@@ -63,9 +63,11 @@ while 1:
         window["-output-"].print(values["-stdout-"], end="")
     elif event == "-theme-":
         theme = values["-theme-"]
+        output = values["-output-"]
         window.close()
         del window
         window = create_window(theme)
+        window["-output-"].update(value=output)
     elif event == "-update-":
         window["-update-"].update(disabled=True)
         window["-status-"].update(value="Updating table...")
