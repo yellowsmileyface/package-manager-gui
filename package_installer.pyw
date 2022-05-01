@@ -47,7 +47,7 @@ def create_window(theme):
                     [sg.Multiline(expand_x=True, expand_y=True, disabled=True, key="-output-", autoscroll=True, right_click_menu=["", ["&Copy"]], font=sg.DEFAULT_FONT, horizontal_scroll=True)],
                     [sg.Checkbox("Use monospace font", key="-monospace-", enable_events=True), sg.Push(), sg.Button("Clear output")]
                 ], expand_x=True, expand_y=True)]]),
-        ], expand_x=True, expand_y=True, orientation="horizontal", relief="flat", pad=0, show_handle=False)],
+        ], expand_x=True, expand_y=True, orientation="horizontal", relief="flat", pad=0)],
         [sg.Text(key="-status-")]
     ]
     return sg.Window("Python Package Installer", layout=layout, finalize=True, resizable=True)
