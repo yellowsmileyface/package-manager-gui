@@ -1,5 +1,5 @@
 import PySimpleGUI as sg
-import subprocess, shlex
+import subprocess, shlex, re
 
 data = []
 
@@ -25,6 +25,11 @@ def list_packages():
     global data
     data = []
     output_ = subprocess.run([config["pip"], "list"], capture_output=True, shell=True).stdout.decode()
+    if re.match(r"Package\s*Version\s*\n\-+\s\-+", output_) is None:
+        main_window.hide()
+        sg.popup("Cannot get the list of packages.", "Make sure that the command have been configured properly.", "Current pip command: " + config["pip"], title="Error", custom_text="Configure command")
+        main_window.write_event_value("Settings", True)
+        return
     installed = output_.split("\n")[2:-1]
     for package in installed:
         name, version = package.split(" ")[0], package.split(" ")[-1]
@@ -46,8 +51,8 @@ def create_main_window():
         [sg.Pane([
                 sg.Column([[sg.Frame("Manage packages", [
                     [sg.Table(data, headings=["Name", "Version"], expand_x=True, expand_y=True, key="-installed-", select_mode=sg.TABLE_SELECT_MODE_EXTENDED)],
-                    [sg.Button("Update table", key="-update-", tooltip="pip list\nUpdate the table"), sg.Button("Uninstall", key="-uninstall-"), sg.Button("Package information", key="-get-info-")],
-                    [sg.Button("Check dependency compatibilities", tooltip="pip check\nVerify if all installed packages have compatible dependencies", key="-check-dep-"), sg.Button("Manage package wheels")]
+                    [sg.Button("Update table", key="-update-", tooltip=f"{config['pip']} list\nUpdate the table"), sg.Button("Uninstall", key="-uninstall-"), sg.Button("Package information", key="-get-info-")],
+                    [sg.Button("Check dependency compatibilities", tooltip=f"{config['pip']} check\nVerify if all installed packages have compatible dependencies", key="-check-dep-"), sg.Button("Manage package wheels")]
                 ], expand_x=True, expand_y=True)]]),
                 sg.Column([[sg.Frame("Output", [
                     [sg.Multiline(expand_x=True, expand_y=True, disabled=True, key="-output-", autoscroll=True, right_click_menu=["", ["&Copy output"]], font=sg.DEFAULT_FONT, horizontal_scroll=config["xscroll"])],
@@ -59,18 +64,19 @@ def create_main_window():
     window = sg.Window("Python Package Installer", layout=layout, finalize=True, resizable=True, sbar_relief="flat" if config["flat-scrollbars"] else None)
     return window
 
-def create_settings_window():
+def create_settings_window(not_cancellable):
     layout = [
         [sg.Text("Theme"), sg.Combo(sg.theme_list(), config["theme"], key="-theme-", enable_events=True, readonly=True)],
         [sg.Text("Configure pip command"), sg.Input(config["pip"], key="-pip-", enable_events=True)],
-        [sg.Text("This app will use the command you specified. For example:"), sg.Text("pip install SomePackage", font=("Courier", sg.DEFAULT_FONT[1]), key="-example-")],
+        [sg.Text("This app will use the command you specified. For example:"), sg.Text(f"{config['pip']} install SomePackage", font=("Courier", sg.DEFAULT_FONT[1]), key="-example-")],
         [sg.Checkbox("Show confirmation before uninstalling packages", config["confirm-uninstall"], key="-confirm-uninstall-")],
         [sg.Checkbox("Enable horizontal scrolling for output", config["xscroll"], key="-xscroll-")],
         [sg.Checkbox("Show resize handle (the little square between the two bottom columns)", config["show-handle"], key="-pane-handle-")],
         [sg.Checkbox("Use flat scrollbars", config["flat-scrollbars"], key="-flat-scroll-")],
-        [sg.Button("Save"), sg.Cancel()]
+        [sg.Button("Save", disabled=not_cancellable), sg.Button("Retry", visible=bool(not_cancellable)), sg.Cancel(disabled=not_cancellable), sg.Quit(visible=bool(not_cancellable))]
     ]
-    return sg.Window("Settings", layout=layout, finalize=True, modal=True, disable_minimize=True)
+    window = sg.Window("Settings", layout=layout, finalize=True, modal=True, disable_minimize=True, disable_close=not_cancellable)
+    return window
 
 main_window = create_main_window()
 list_packages()
@@ -78,13 +84,18 @@ list_packages()
 while 1:
     window, event, values = sg.read_all_windows()
     if window is None: break
-    if event in (sg.WIN_CLOSED, "Quit", "Cancel"):
+    if event in (sg.WIN_CLOSED, "Cancel"):
         window.close()
+    if event == "Quit":
+        window.close()
+        if window != main_window: main_window.close()
+        break
     elif event == "Settings":
-        settings_window = create_settings_window()
+        settings_window = create_settings_window(not_cancellable=values.get(event))
     elif event == "-stdout-":
         main_window["-output-"].print(values["-stdout-"], end="")
     elif event == "Save":
+        old_command = config["pip"]
         if values["-pip-"].strip() == "":
             sg.popup("Command cannot be blank", title="Error")
             continue
@@ -102,9 +113,17 @@ while 1:
         del main_window
         main_window = create_main_window()
         main_window["-output-"].update(value=output)
+        if old_command != config["pip"]:
+            list_packages()
         main_window.force_focus()
+    elif event == "Retry":
+        settings_window.close()
+        main_window.un_hide()
+        list_packages()
     elif event == "-pip-":
-        window["-example-"].update(values["-pip-"].strip() + " install SomePackage")
+        window["-example-"].update(values[event].strip() + " install SomePackage")
+        if window["Quit"].visible:
+            window["Save"].update(disabled=config["pip"] == values[event])
     elif event == "-update-":
         main_window["-update-"].update(disabled=True)
         main_window["-status-"].update(value="Updating table...")
