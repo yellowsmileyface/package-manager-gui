@@ -27,10 +27,19 @@ def list_packages():
     output_ = subprocess.run([config["pip"], "list"], capture_output=True, shell=True).stdout.decode()
     if re.match(r"Package\s*Version\s*\n\-+\s\-+", output_) is None:
         main_window.hide()
-        sg.popup("Cannot get the list of packages.", "Make sure that the command have been configured properly.", "Current pip command: " + config["pip"], title="Error", custom_text="Configure command")
-        main_window.write_event_value("Settings", True)
+        choice, _ = sg.Window("Error", [
+            [sg.Text("Cannot get the list of packages.")],
+            [sg.Text("Make sure that the command have been configured properly.")],
+            [sg.Text("Current pip command: " + config["pip"])],
+            [sg.Button("Configure command"), sg.Button("Retry")]
+        ], disable_close=True).read(close=True)
+        if choice == "Configure command":
+            main_window.write_event_value("Settings", True)
+        else:
+            main_window.un_hide()
+            list_packages()
         return
-    installed = output_.split("\n")[2:-1]
+    installed = output_.splitlines()[2:-1]
     for package in installed:
         name, version = package.split(" ")[0], package.split(" ")[-1]
         data.append([name, version])
@@ -49,15 +58,15 @@ def create_main_window():
             [sg.Button("Install package", disabled=True, key="-install-")]
         ], expand_x=True)],
         [sg.Pane([
-                sg.Column([[sg.Frame("Manage packages", [
-                    [sg.Table(data, headings=["Name", "Version"], expand_x=True, expand_y=True, key="-installed-", select_mode=sg.TABLE_SELECT_MODE_EXTENDED)],
-                    [sg.Button("Update table", key="-update-", tooltip=f"{config['pip']} list\nUpdate the table"), sg.Button("Uninstall", key="-uninstall-"), sg.Button("Package information", key="-get-info-")],
-                    [sg.Button("Check dependency compatibilities", tooltip=f"{config['pip']} check\nVerify if all installed packages have compatible dependencies", key="-check-dep-"), sg.Button("Manage package wheels")]
-                ], expand_x=True, expand_y=True)]]),
-                sg.Column([[sg.Frame("Output", [
-                    [sg.Multiline(expand_x=True, expand_y=True, disabled=True, key="-output-", autoscroll=True, right_click_menu=["", ["&Copy output"]], font=sg.DEFAULT_FONT, horizontal_scroll=config["xscroll"])],
-                    [sg.Checkbox("Use monospace font", key="-monospace-", enable_events=True), sg.Push(), sg.Button("Clear output")]
-                ], expand_x=True, expand_y=True)]]),
+            sg.Column([[sg.Frame("Manage packages", [
+                [sg.Table(data, headings=["Name", "Version"], expand_x=True, expand_y=True, key="-installed-", select_mode=sg.TABLE_SELECT_MODE_EXTENDED)],
+                [sg.Button("Update table", key="-update-", tooltip=f"{config['pip']} list\nUpdate the table"), sg.Button("Uninstall", key="-uninstall-"), sg.Button("Package information", key="-get-info-")],
+                [sg.Button("Check dependency compatibilities", tooltip=f"{config['pip']} check\nVerify if all installed packages have compatible dependencies", key="-check-dep-"), sg.Button("Manage package wheels")]
+            ], expand_x=True, expand_y=True)]]),
+            sg.Column([[sg.Frame("Output", [
+                [sg.Multiline(expand_x=True, expand_y=True, disabled=True, key="-output-", autoscroll=True, right_click_menu=["", ["&Copy output"]], font=sg.DEFAULT_FONT, horizontal_scroll=config["xscroll"])],
+                [sg.Checkbox("Use monospace font", key="-monospace-", enable_events=True), sg.Push(), sg.Button("Clear output")]
+            ], expand_x=True, expand_y=True)]]),
         ], expand_x=True, expand_y=True, orientation="horizontal", relief="flat", pad=0, show_handle=config["show-handle"])],
         [sg.Text(key="-status-", expand_x=True), sg.Button("Settings"), sg.Quit()]
     ]
@@ -73,9 +82,24 @@ def create_settings_window(not_cancellable):
         [sg.Checkbox("Enable horizontal scrolling for output", config["xscroll"], key="-xscroll-")],
         [sg.Checkbox("Show resize handle (the little square between the two bottom columns)", config["show-handle"], key="-pane-handle-")],
         [sg.Checkbox("Use flat scrollbars", config["flat-scrollbars"], key="-flat-scroll-")],
-        [sg.Button("Save", disabled=not_cancellable), sg.Button("Retry", visible=bool(not_cancellable)), sg.Cancel(disabled=not_cancellable), sg.Quit(visible=bool(not_cancellable))]
+        [sg.Button("Save", disabled=not_cancellable), sg.Cancel(disabled=not_cancellable), sg.Quit()]
     ]
     window = sg.Window("Settings", layout=layout, finalize=True, modal=True, disable_minimize=True, disable_close=not_cancellable)
+    return window
+
+def create_manage_wheel_window():
+    pip = config["pip"]
+    caches = []
+    data = subprocess.run([pip, "cache", "list"], capture_output=True, shell=True).stdout.decode().splitlines()[2:]
+    print(data)
+    caches = list(map(lambda d: [" ".join(d.split(" ")[2:-2]), " ".join(d.split(" ")[-2:])], data))
+    print(caches)
+    layout = [
+        [sg.Text("Cache location: " + subprocess.run([pip, "cache", "dir"], capture_output=True, shell=True).stdout.decode().strip())],
+        [sg.Table(caches, headings=["Cache name", "Size"], num_rows=10, expand_x=True)],
+        [sg.Button("Delete cache")]
+    ]
+    window = sg.Window("Manage wheel cache", layout=layout, finalize=True, modal=True)
     return window
 
 main_window = create_main_window()
@@ -116,10 +140,6 @@ while 1:
         if old_command != config["pip"]:
             list_packages()
         main_window.force_focus()
-    elif event == "Retry":
-        settings_window.close()
-        main_window.un_hide()
-        list_packages()
     elif event == "-pip-":
         window["-example-"].update(values[event].strip() + " install SomePackage")
         if window["Quit"].visible:
@@ -164,15 +184,15 @@ while 1:
             main_window["-install-"].update(disabled=not values["-req-file-"].strip())
         main_window.write_event_value("-update-", None)
     elif event == "-uninstall-":
-        if config["confirm-uninstall"]:
-            if sg.popup_ok_cancel("Are you sure you want to uninstall these packages?", title="Uninstall?") != "OK":
-                continue
         main_window["-output-"].update(disabled=False)
         main_window["-output-"].update(value="")
         if values["-installed-"] == []:
             main_window["-output-"].print("You haven't selected a package.")
             main_window["-output-"].update(disabled=True)
         else:
+            if config["confirm-uninstall"]:
+                if sg.popup_ok_cancel("Are you sure you want to uninstall these packages?", title="Uninstall?") != "OK":
+                    continue
             main_window["-uninstall-"].update(disabled=True)
             main_window["-status-"].update(value="Uninstalling...")
             packages = map(lambda idx: data[idx][0], values["-installed-"])
@@ -216,3 +236,5 @@ while 1:
         sg.clipboard_set(values["-output-"])
     elif event == "Clear output":
         main_window["-output-"].update(value="")
+    elif event == "Manage package wheels":
+        cache_window = create_manage_wheel_window()
