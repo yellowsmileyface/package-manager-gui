@@ -52,7 +52,7 @@ def create_main_window():
                 sg.Column([[sg.Frame("Manage packages", [
                     [sg.Table(data, headings=["Name", "Version"], expand_x=True, expand_y=True, key="-installed-", select_mode=sg.TABLE_SELECT_MODE_EXTENDED)],
                     [sg.Button("Update table", key="-update-", tooltip=f"{config['pip']} list\nUpdate the table"), sg.Button("Uninstall", key="-uninstall-"), sg.Button("Package information", key="-get-info-")],
-                    [sg.Button("Check dependency compatibilities", tooltip=f"{config['pip']} check\nVerify if all installed packages have compatible dependencies", key="-check-dep-"), sg.Button("Manage package wheels")]
+                    [sg.Button("Check dependency compatibilities", tooltip=f"{config['pip']} check\nVerify if all installed packages have compatible dependencies", key="-check-dep-")]
                 ], expand_x=True, expand_y=True)]]),
                 sg.Column([[sg.Frame("Output", [
                     [sg.Multiline(expand_x=True, expand_y=True, disabled=True, key="-output-", autoscroll=True, right_click_menu=["", ["&Copy output"]], font=sg.DEFAULT_FONT, horizontal_scroll=config["xscroll"])],
