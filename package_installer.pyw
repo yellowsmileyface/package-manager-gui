@@ -169,15 +169,17 @@ while 1:
             main_window["-install-"].update(disabled=not values["-req-file-"].strip())
         main_window.write_event_value("-update-", None)
     elif event == "-uninstall-":
-        main_window["-output-"].update(disabled=False)
-        main_window["-output-"].update(value="")
         if values["-installed-"] == []:
+            main_window["-output-"].update(disabled=False)
+            main_window["-output-"].update(value="")
             main_window["-output-"].print("You haven't selected a package.")
             main_window["-output-"].update(disabled=True)
         else:
             if config["confirm-uninstall"]:
                 if sg.popup_ok_cancel("Are you sure you want to uninstall these packages?", title="Uninstall?") != "OK":
                     continue
+            main_window["-output-"].update(disabled=False)
+            main_window["-output-"].update(value="")
             main_window["-uninstall-"].update(disabled=True)
             main_window["-status-"].update(value="Uninstalling...")
             packages = map(lambda idx: data[idx][0], values["-installed-"])
