@@ -5,7 +5,7 @@ data = []
 
 config = {
     "theme": "DarkGrey15",
-    "pip": "pip",
+    "pip": "python -m pip",
     "confirm-uninstall": True,
     "xscroll": False,
     "show-handle": True,
@@ -24,7 +24,7 @@ def run_command(command):
 def list_packages():
     global data
     data = []
-    output_ = subprocess.run([config["pip"], "list"], capture_output=True, shell=True).stdout.decode()
+    output_ = subprocess.run([*config["pip"].split(), "list"], capture_output=True, shell=True).stdout.decode()
     if re.match(r"Package\s*Version\s*\n\-+\s\-+", output_) is None:
         main_window.hide()
         choice, _ = sg.Window("Error", [
@@ -159,7 +159,7 @@ while 1:
         ])
         main_window["-output-"].update(disabled=False)
         main_window["-output-"].update(value="")
-        main_window.start_thread(lambda: run_command([config["pip"], "install", *args]), "-install-done-")
+        main_window.start_thread(lambda: run_command([*config["pip"].split(), "install", *args]), "-install-done-")
     elif event == "-install-done-":
         main_window["-output-"].update(disabled=True)
         main_window["-status-"].update(value="")
@@ -181,7 +181,7 @@ while 1:
             main_window["-uninstall-"].update(disabled=True)
             main_window["-status-"].update(value="Uninstalling...")
             packages = map(lambda idx: data[idx][0], values["-installed-"])
-            main_window.start_thread(lambda: run_command([config["pip"], "uninstall", "-y", *packages]), "-uninstall-done-")
+            main_window.start_thread(lambda: run_command([*config["pip"].split(), "uninstall", "-y", *packages]), "-uninstall-done-")
     elif event == "-uninstall-done-":
         main_window["-output-"].update(disabled=True)
         main_window["-status-"].update(value="")
@@ -197,7 +197,7 @@ while 1:
             main_window["-status-"].update(value="Loading...")
             for package in values["-installed-"]:
                 name = data[package][0]
-                main_window.start_thread(lambda: (name, subprocess.run([config["pip"], "show", name], capture_output=True, shell=True).stdout.decode().strip()), "-pkg-info-")
+                main_window.start_thread(lambda: (name, subprocess.run([*config["pip"].split(), "show", name], capture_output=True, shell=True).stdout.decode().strip()), "-pkg-info-")
         main_window["-output-"].update(disabled=True)
     elif event == "-pkg-info-":
         main_window["-output-"].print(f"Information of package {values[event][0]}", font=(sg.DEFAULT_FONT, 15, "bold"))
@@ -209,7 +209,7 @@ while 1:
         main_window["-status-"].update(value="Loading...")
         main_window["-output-"].update(disabled=False)
         main_window["-output-"].update(value="")
-        main_window.start_thread(lambda: subprocess.run([config["pip"], "check"], capture_output=True, shell=True).stdout.decode().strip(), "-ver-dep-")
+        main_window.start_thread(lambda: subprocess.run([*config["pip"].split(), "check"], capture_output=True, shell=True).stdout.decode().strip(), "-ver-dep-")
     elif event == "-ver-dep-":
         main_window["-output-"].print(values[event])
         main_window["-output-"].update(disabled=True)
